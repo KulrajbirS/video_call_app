@@ -15,7 +15,8 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Video_call_app"
         android:usesCleartextTraffic="true">
-        <activity android:name=".CallActivity"></activity>
+        <activity android:name=".CallActivity"
+            android:theme="@style/AppTheme"></activity>
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
