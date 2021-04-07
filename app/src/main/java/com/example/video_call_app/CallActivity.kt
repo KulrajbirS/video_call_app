@@ -8,9 +8,7 @@ import android.webkit.PermissionRequest
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.Button
-import android.widget.ImageView
-import android.widget.TextView
+import android.widget.*
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
@@ -36,21 +34,64 @@ class CallActivity : AppCompatActivity() {
         val togVideo = findViewById<ImageView>(R.id.toggleVideo)
 
 
-        username = intent.getStringExtra("username")!!
+        //Correct the Error of Empty Intent
+        //No Values Coming Through
+        username = "kulraj"//intent.getStringExtra("username")!!
 
         call.setOnClickListener {
-
+            val fname_edit = findViewById<EditText>(R.id.friendNameEdit)
+            frienduser = fname_edit.text.toString()
+            sendCallRequest()
         }
 
         togAudio.setOnClickListener {
+            isAudio = !isAudio
+            callJavascriptFunction("javascript:toggleAudio(\"${isAudio}\")")
+            val toggle_audio = findViewById<ImageView>(R.id.toogleAudio)
 
+            toggle_audio.setImageResource(if (isAudio) R.drawable.ic_baseline_mic_24 else R.drawable.ic_baseline_mic_off_24)
         }
 
         togVideo.setOnClickListener {
+            isVideo = !isVideo
+            callJavascriptFunction("javascript:toggleVideo(\"${isVideo}\")")
+            val toggle_video = findViewById<ImageView>(R.id.toggleVideo)
 
+            toggle_video.setImageResource(if (isVideo) R.drawable.ic_baseline_videocam_24 else R.drawable.ic_baseline_videocam_off_24)
         }
 
         setupWebView()
+    }
+
+    private fun sendCallRequest() {
+        if (!isPeerConnected) {
+            Toast.makeText(this, "You are not Connected. Check your Internet", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        firebaseRef.child(frienduser).child("incoming").setValue(username)
+        firebaseRef.child(frienduser).child("isAvailable").addValueEventListener(object : ValueEventListener {
+            override fun onCancelled(error: DatabaseError) {}
+
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (snapshot.value.toString() == "true") {
+                    listenForConnId()
+                }
+            }
+        })
+    }
+
+    private fun listenForConnId() {
+        firebaseRef.child(frienduser).child("connId").addValueEventListener(object: ValueEventListener {
+            override fun onCancelled(error: DatabaseError) {}
+
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (snapshot.value == null)
+                    return
+                switchToControls()
+                callJavascriptFunction("javascript:startCall(\"${snapshot.value}\"")
+            }
+        })
     }
 
     private fun setupWebView() {
@@ -111,11 +152,28 @@ class CallActivity : AppCompatActivity() {
         val acc_btn = findViewById<ImageView>(R.id.acceptCall)
         acc_btn.setOnClickListener {
             firebaseRef.child(username).child("connId").setValue(u_id)
+            firebaseRef.child(username).child("isAvailable").setValue(true)
+
+            call.visibility = View.GONE
+
+            switchToControls()
         }
 
-        val call_l = findViewById<View>(R.id.calllayout)
+        val r_btn = findViewById<ImageView>(R.id.rejectCall)
 
+        r_btn.setOnClickListener {
+            firebaseRef.child(username).child("incoming").setValue(null)
+            call.visibility = View.GONE
+        }
 
+    }
+
+    private fun switchToControls() {
+        val input = findViewById<View>(R.id.inputLayout)
+        val controls = findViewById<View>(R.id.callControl)
+
+        input.visibility = View.GONE
+        controls.visibility = View.VISIBLE
     }
 
     private fun getUniqueId(): String {
@@ -129,5 +187,16 @@ class CallActivity : AppCompatActivity() {
 
     fun onPeerConnected() {
         isPeerConnected = true
+    }
+
+    override fun onBackPressed() {
+        finish()
+    }
+
+    override fun onDestroy() {
+        firebaseRef.child(username).setValue(null)
+        val web = findViewById<WebView>(R.id.webView)
+        web.loadUrl("about:blank")
+        super.onDestroy()
     }
 }

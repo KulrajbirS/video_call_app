@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.Button
+import android.widget.EditText
 import androidx.core.app.ActivityCompat
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.ktx.initialize
@@ -28,9 +29,10 @@ class MainActivity : AppCompatActivity() {
         Firebase.initialize(this)
 
         button.setOnClickListener {
-            val username = R.id.usernameEdit
+            val username = findViewById<EditText>(R.id.usernameEdit)
+            var user = username.text
             val intent = Intent(this, CallActivity::class.java)
-            intent.putExtra("username", username)
+            intent.putExtra("username", user)
             startActivity(intent)
         }
 
